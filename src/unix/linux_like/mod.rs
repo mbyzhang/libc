@@ -1186,7 +1186,8 @@ pub const PTRACE_O_TRACEEXIT: ::c_int = 0x00000040;
 pub const PTRACE_O_TRACESECCOMP: ::c_int = 0x00000080;
 pub const PTRACE_O_SUSPEND_SECCOMP: ::c_int = 0x00200000;
 pub const PTRACE_O_EXITKILL: ::c_int = 0x00100000;
-pub const PTRACE_O_MASK: ::c_int = 0x003000ff;
+pub const PTRACE_O_ALLOW_TRACER_THREAD_GROUP: ::c_int = 0x00400000;
+pub const PTRACE_O_MASK: ::c_int = 0x007000ff;
 
 // Wait extended result codes for the above trace options.
 pub const PTRACE_EVENT_FORK: ::c_int = 1;
