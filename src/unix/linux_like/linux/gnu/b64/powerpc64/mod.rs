@@ -345,8 +345,6 @@ pub const POLLWRBAND: ::c_short = 0x200;
 pub const O_ASYNC: ::c_int = 0x2000;
 pub const O_NDELAY: ::c_int = 0x800;
 
-pub const PTRACE_DETACH: ::c_uint = 17;
-
 pub const EFD_NONBLOCK: ::c_int = 0x800;
 
 pub const F_GETLK: ::c_int = 5;
@@ -473,6 +471,7 @@ pub const EREMOTEIO: ::c_int = 121;
 
 pub const MCL_CURRENT: ::c_int = 0x2000;
 pub const MCL_FUTURE: ::c_int = 0x4000;
+pub const MCL_ONFAULT: ::c_int = 0x8000;
 
 pub const SIGSTKSZ: ::size_t = 0x4000;
 pub const MINSIGSTKSZ: ::size_t = 4096;

@@ -795,7 +795,6 @@ pub const TCSAFLUSH: ::c_int = 0x5410;
 
 pub const PTRACE_GETFPREGS: ::c_uint = 14;
 pub const PTRACE_SETFPREGS: ::c_uint = 15;
-pub const PTRACE_DETACH: ::c_uint = 17;
 pub const PTRACE_GETFPXREGS: ::c_uint = 18;
 pub const PTRACE_SETFPXREGS: ::c_uint = 19;
 pub const PTRACE_GETREGS: ::c_uint = 12;
@@ -823,6 +822,7 @@ pub const RTLD_NOLOAD: ::c_int = 0x8;
 
 pub const MCL_CURRENT: ::c_int = 0x0001;
 pub const MCL_FUTURE: ::c_int = 0x0002;
+pub const MCL_ONFAULT: ::c_int = 0x0004;
 
 pub const SIGSTKSZ: ::size_t = 8192;
 pub const MINSIGSTKSZ: ::size_t = 2048;

@@ -116,13 +116,17 @@ s! {
             target_arch = "sparc",
             target_arch = "sparc64",
             target_arch = "mips",
-            target_arch = "mips64")))]
+            target_arch = "mips32r6",
+            target_arch = "mips64",
+            target_arch = "mips64r6")))]
         pub c_ispeed: ::speed_t,
         #[cfg(not(any(
             target_arch = "sparc",
             target_arch = "sparc64",
             target_arch = "mips",
-            target_arch = "mips64")))]
+            target_arch = "mips32r6",
+            target_arch = "mips64",
+            target_arch = "mips64r6")))]
         pub c_ospeed: ::speed_t,
     }
 
@@ -319,38 +323,6 @@ s! {
         pub semvmx: ::c_int,
         pub semaem: ::c_int,
     }
-
-    pub struct ptrace_peeksiginfo_args {
-        pub off: ::__u64,
-        pub flags: ::__u32,
-        pub nr: ::__s32,
-    }
-
-    pub struct __c_anonymous_ptrace_syscall_info_entry {
-        pub nr: ::__u64,
-        pub args: [::__u64; 6],
-    }
-
-    pub struct __c_anonymous_ptrace_syscall_info_exit {
-        pub sval: ::__s64,
-        pub is_error: ::__u8,
-    }
-
-    pub struct __c_anonymous_ptrace_syscall_info_seccomp {
-        pub nr: ::__u64,
-        pub args: [::__u64; 6],
-        pub ret_data: ::__u32,
-    }
-
-    pub struct ptrace_syscall_info {
-        pub op: ::__u8,
-        pub pad: [::__u8; 3],
-        pub arch: ::__u32,
-        pub instruction_pointer: ::__u64,
-        pub stack_pointer: ::__u64,
-        #[cfg(libc_union)]
-        pub u: __c_anonymous_ptrace_syscall_info_data,
-    }
 }
 
 impl siginfo_t {
@@ -436,18 +408,6 @@ cfg_if! {
 
             pub unsafe fn si_stime(&self) -> ::c_long {
                 self.sifields().sigchld.si_stime
-            }
-        }
-
-        pub union __c_anonymous_ptrace_syscall_info_data {
-            pub entry: __c_anonymous_ptrace_syscall_info_entry,
-            pub exit: __c_anonymous_ptrace_syscall_info_exit,
-            pub seccomp: __c_anonymous_ptrace_syscall_info_seccomp,
-        }
-        impl ::Copy for __c_anonymous_ptrace_syscall_info_data {}
-        impl ::Clone for __c_anonymous_ptrace_syscall_info_data {
-            fn clone(&self) -> __c_anonymous_ptrace_syscall_info_data {
-                *self
             }
         }
     }
@@ -550,44 +510,6 @@ cfg_if! {
                 self.ut_tv.hash(state);
                 self.ut_addr_v6.hash(state);
                 self.__glibc_reserved.hash(state);
-            }
-        }
-
-        #[cfg(libc_union)]
-        impl PartialEq for __c_anonymous_ptrace_syscall_info_data {
-            fn eq(&self, other: &__c_anonymous_ptrace_syscall_info_data) -> bool {
-                unsafe {
-                self.entry == other.entry ||
-                    self.exit == other.exit ||
-                    self.seccomp == other.seccomp
-                }
-            }
-        }
-
-        #[cfg(libc_union)]
-        impl Eq for __c_anonymous_ptrace_syscall_info_data {}
-
-        #[cfg(libc_union)]
-        impl ::fmt::Debug for __c_anonymous_ptrace_syscall_info_data {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
-                unsafe {
-                f.debug_struct("__c_anonymous_ptrace_syscall_info_data")
-                    .field("entry", &self.entry)
-                    .field("exit", &self.exit)
-                    .field("seccomp", &self.seccomp)
-                    .finish()
-                }
-            }
-        }
-
-        #[cfg(libc_union)]
-        impl ::hash::Hash for __c_anonymous_ptrace_syscall_info_data {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
-                unsafe {
-                self.entry.hash(state);
-                self.exit.hash(state);
-                self.seccomp.hash(state);
-                }
             }
         }
     }
@@ -714,11 +636,6 @@ pub const SOCK_SEQPACKET: ::c_int = 5;
 pub const SOCK_DCCP: ::c_int = 6;
 pub const SOCK_PACKET: ::c_int = 10;
 
-pub const FAN_MARK_INODE: ::c_uint = 0x0000_0000;
-pub const FAN_MARK_MOUNT: ::c_uint = 0x0000_0010;
-// NOTE: FAN_MARK_FILESYSTEM requires Linux Kernel >= 4.20.0
-pub const FAN_MARK_FILESYSTEM: ::c_uint = 0x0000_0100;
-
 pub const AF_IB: ::c_int = 27;
 pub const AF_MPLS: ::c_int = 28;
 pub const AF_NFC: ::c_int = 39;
@@ -831,36 +748,6 @@ cfg_if! {
 
 pub const CPU_SETSIZE: ::c_int = 0x400;
 
-pub const PTRACE_TRACEME: ::c_uint = 0;
-pub const PTRACE_PEEKTEXT: ::c_uint = 1;
-pub const PTRACE_PEEKDATA: ::c_uint = 2;
-pub const PTRACE_PEEKUSER: ::c_uint = 3;
-pub const PTRACE_POKETEXT: ::c_uint = 4;
-pub const PTRACE_POKEDATA: ::c_uint = 5;
-pub const PTRACE_POKEUSER: ::c_uint = 6;
-pub const PTRACE_CONT: ::c_uint = 7;
-pub const PTRACE_KILL: ::c_uint = 8;
-pub const PTRACE_SINGLESTEP: ::c_uint = 9;
-pub const PTRACE_ATTACH: ::c_uint = 16;
-pub const PTRACE_SYSCALL: ::c_uint = 24;
-pub const PTRACE_SETOPTIONS: ::c_uint = 0x4200;
-pub const PTRACE_GETEVENTMSG: ::c_uint = 0x4201;
-pub const PTRACE_GETSIGINFO: ::c_uint = 0x4202;
-pub const PTRACE_SETSIGINFO: ::c_uint = 0x4203;
-pub const PTRACE_GETREGSET: ::c_uint = 0x4204;
-pub const PTRACE_SETREGSET: ::c_uint = 0x4205;
-pub const PTRACE_SEIZE: ::c_uint = 0x4206;
-pub const PTRACE_INTERRUPT: ::c_uint = 0x4207;
-pub const PTRACE_LISTEN: ::c_uint = 0x4208;
-pub const PTRACE_PEEKSIGINFO: ::c_uint = 0x4209;
-pub const PTRACE_GETSIGMASK: ::c_uint = 0x420a;
-pub const PTRACE_SETSIGMASK: ::c_uint = 0x420b;
-pub const PTRACE_GET_SYSCALL_INFO: ::c_uint = 0x420e;
-pub const PTRACE_SYSCALL_INFO_NONE: ::__u8 = 0;
-pub const PTRACE_SYSCALL_INFO_ENTRY: ::__u8 = 1;
-pub const PTRACE_SYSCALL_INFO_EXIT: ::__u8 = 2;
-pub const PTRACE_SYSCALL_INFO_SECCOMP: ::__u8 = 3;
-
 // linux/fs.h
 
 // Flags for preadv2/pwritev2
@@ -942,6 +829,11 @@ pub const NT_PRFPXREG: ::c_int = 20;
 
 pub const ELFOSABI_ARM_AEABI: u8 = 64;
 
+// linux/sched.h
+pub const CLONE_NEWTIME: ::c_int = 0x80;
+pub const CLONE_CLEAR_SIGHAND: ::c_int = 0x100000000;
+pub const CLONE_INTO_CGROUP: ::c_int = 0x200000000;
+
 // linux/keyctl.h
 pub const KEYCTL_DH_COMPUTE: u32 = 23;
 pub const KEYCTL_PKEY_QUERY: u32 = 24;
@@ -956,7 +848,10 @@ pub const KEYCTL_SUPPORTS_DECRYPT: u32 = 0x02;
 pub const KEYCTL_SUPPORTS_SIGN: u32 = 0x04;
 pub const KEYCTL_SUPPORTS_VERIFY: u32 = 0x08;
 cfg_if! {
-    if #[cfg(not(any(target_arch="mips", target_arch="mips64")))] {
+    if #[cfg(not(any(target_arch = "mips",
+                     target_arch = "mips32r6",
+                     target_arch = "mips64",
+                     target_arch = "mips64r6")))] {
         pub const KEYCTL_MOVE: u32 = 30;
         pub const KEYCTL_CAPABILITIES: u32 = 31;
 
@@ -1019,7 +914,17 @@ pub const STATX_ATTR_DAX: ::c_int = 0x00200000;
 
 pub const SOMAXCONN: ::c_int = 4096;
 
-//sys/timex.h
+// linux/mount.h
+pub const MOVE_MOUNT_F_SYMLINKS: ::c_uint = 0x00000001;
+pub const MOVE_MOUNT_F_AUTOMOUNTS: ::c_uint = 0x00000002;
+pub const MOVE_MOUNT_F_EMPTY_PATH: ::c_uint = 0x00000004;
+pub const MOVE_MOUNT_T_SYMLINKS: ::c_uint = 0x00000010;
+pub const MOVE_MOUNT_T_AUTOMOUNTS: ::c_uint = 0x00000020;
+pub const MOVE_MOUNT_T_EMPTY_PATH: ::c_uint = 0x00000040;
+pub const MOVE_MOUNT_SET_GROUP: ::c_uint = 0x00000100;
+pub const MOVE_MOUNT_BENEATH: ::c_uint = 0x00000200;
+
+// sys/timex.h
 pub const ADJ_OFFSET: ::c_uint = 0x0001;
 pub const ADJ_FREQUENCY: ::c_uint = 0x0002;
 pub const ADJ_MAXERROR: ::c_uint = 0x0004;
@@ -1077,6 +982,18 @@ pub const TIME_WAIT: ::c_int = 4;
 pub const TIME_ERROR: ::c_int = 5;
 pub const TIME_BAD: ::c_int = TIME_ERROR;
 pub const MAXTC: ::c_long = 6;
+
+// Portable GLOB_* flags are defined at the `linux_like` level.
+// The following are GNU extensions.
+pub const GLOB_PERIOD: ::c_int = 1 << 7;
+pub const GLOB_ALTDIRFUNC: ::c_int = 1 << 9;
+pub const GLOB_BRACE: ::c_int = 1 << 10;
+pub const GLOB_NOMAGIC: ::c_int = 1 << 11;
+pub const GLOB_TILDE: ::c_int = 1 << 12;
+pub const GLOB_ONLYDIR: ::c_int = 1 << 13;
+pub const GLOB_TILDE_CHECK: ::c_int = 1 << 14;
+
+pub const MADV_COLLAPSE: ::c_int = 25;
 
 cfg_if! {
     if #[cfg(any(
@@ -1242,9 +1159,6 @@ extern "C" {
     pub fn reallocarray(ptr: *mut ::c_void, nmemb: ::size_t, size: ::size_t) -> *mut ::c_void;
 
     pub fn ctermid(s: *mut ::c_char) -> *mut ::c_char;
-}
-
-extern "C" {
     pub fn ioctl(fd: ::c_int, request: ::c_ulong, ...) -> ::c_int;
     pub fn backtrace(buf: *mut *mut ::c_void, sz: ::c_int) -> ::c_int;
     pub fn glob64(
@@ -1307,6 +1221,9 @@ extern "C" {
         result: *mut *mut ::group,
     ) -> ::c_int;
 
+    pub fn putpwent(p: *const ::passwd, stream: *mut ::FILE) -> ::c_int;
+    pub fn putgrent(grp: *const ::group, stream: *mut ::FILE) -> ::c_int;
+
     pub fn sethostid(hostid: ::c_long) -> ::c_int;
 
     pub fn memfd_create(name: *const ::c_char, flags: ::c_uint) -> ::c_int;
@@ -1333,9 +1250,6 @@ extern "C" {
     /// GNU version of `basename(3)`, defined in `string.h`.
     #[link_name = "basename"]
     pub fn gnu_basename(path: *const ::c_char) -> *mut ::c_char;
-}
-
-extern "C" {
     pub fn dlmopen(lmid: Lmid_t, filename: *const ::c_char, flag: ::c_int) -> *mut ::c_void;
     pub fn dlinfo(handle: *mut ::c_void, request: ::c_int, info: *mut ::c_void) -> ::c_int;
     pub fn dladdr1(
@@ -1345,15 +1259,10 @@ extern "C" {
         flags: ::c_int,
     ) -> ::c_int;
     pub fn malloc_trim(__pad: ::size_t) -> ::c_int;
-}
-
-extern "C" {
     pub fn gnu_get_libc_release() -> *const ::c_char;
     pub fn gnu_get_libc_version() -> *const ::c_char;
-}
 
-// posix/spawn.h
-extern "C" {
+    // posix/spawn.h
     // Added in `glibc` 2.29
     pub fn posix_spawn_file_actions_addchdir_np(
         actions: *mut ::posix_spawn_file_actions_t,
@@ -1374,23 +1283,34 @@ extern "C" {
         actions: *mut ::posix_spawn_file_actions_t,
         tcfd: ::c_int,
     ) -> ::c_int;
-}
 
-// mntent.h
-extern "C" {
+    // mntent.h
     pub fn getmntent_r(
         stream: *mut ::FILE,
         mntbuf: *mut ::mntent,
         buf: *mut ::c_char,
         buflen: ::c_int,
     ) -> *mut ::mntent;
+
+    pub fn execveat(
+        dirfd: ::c_int,
+        pathname: *const ::c_char,
+        argv: *const *mut c_char,
+        envp: *const *mut c_char,
+        flags: ::c_int,
+    ) -> ::c_int;
+
+    // Added in `glibc` 2.34
+    pub fn close_range(first: ::c_uint, last: ::c_uint, flags: ::c_int) -> ::c_int;
 }
 
 cfg_if! {
     if #[cfg(any(target_arch = "x86",
                  target_arch = "arm",
                  target_arch = "m68k",
+                 target_arch = "csky",
                  target_arch = "mips",
+                 target_arch = "mips32r6",
                  target_arch = "powerpc",
                  target_arch = "sparc",
                  target_arch = "riscv32"))] {
@@ -1400,6 +1320,7 @@ cfg_if! {
                         target_arch = "aarch64",
                         target_arch = "powerpc64",
                         target_arch = "mips64",
+                        target_arch = "mips64r6",
                         target_arch = "s390x",
                         target_arch = "sparc64",
                         target_arch = "riscv64",

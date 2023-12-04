@@ -6,13 +6,9 @@ pub type timer_t = *mut ::c_void;
 pub type key_t = ::c_int;
 pub type id_t = ::c_uint;
 
-#[cfg_attr(feature = "extra_traits", derive(Debug))]
-pub enum timezone {}
-impl ::Copy for timezone {}
-impl ::Clone for timezone {
-    fn clone(&self) -> timezone {
-        *self
-    }
+missing! {
+    #[cfg_attr(feature = "extra_traits", derive(Debug))]
+    pub enum timezone {}
 }
 
 s! {
@@ -208,6 +204,51 @@ s! {
         pub msg_hdr: ::msghdr,
         pub msg_len: ::c_uint,
     }
+
+    pub struct seccomp_metadata {
+        pub filter_off: ::__u64,
+        pub flags: ::__u64,
+    }
+
+    pub struct ptrace_peeksiginfo_args {
+        pub off: ::__u64,
+        pub flags: ::__u32,
+        pub nr: ::__s32,
+    }
+
+    pub struct ptrace_rseq_configuration {
+        pub rseq_abi_pointer: ::__u64,
+        pub rseq_abi_size: ::__u32,
+        pub signature: ::__u32,
+        pub flags: ::__u32,
+        pub pad: ::__u32,
+    }
+
+    pub struct __c_anonymous_ptrace_syscall_info_entry {
+        pub nr: ::__u64,
+        pub args: [::__u64; 6],
+    }
+
+    pub struct __c_anonymous_ptrace_syscall_info_exit {
+        pub sval: ::__s64,
+        pub is_error: ::__u8,
+    }
+
+    pub struct __c_anonymous_ptrace_syscall_info_seccomp {
+        pub nr: ::__u64,
+        pub args: [::__u64; 6],
+        pub ret_data: ::__u32,
+    }
+
+    pub struct ptrace_syscall_info {
+        pub op: ::__u8,
+        pub pad: [::__u8; 3],
+        pub arch: ::__u32,
+        pub instruction_pointer: ::__u64,
+        pub stack_pointer: ::__u64,
+        #[cfg(libc_union)]
+        pub u: __c_anonymous_ptrace_syscall_info_data,
+    }
 }
 
 s_no_extra_traits! {
@@ -258,6 +299,22 @@ s_no_extra_traits! {
         __unused1: [::c_int; 11],
         #[cfg(target_pointer_width = "32")]
         __unused1: [::c_int; 12]
+    }
+}
+
+cfg_if! {
+    if #[cfg(libc_union)] {
+        pub union __c_anonymous_ptrace_syscall_info_data {
+            pub entry: __c_anonymous_ptrace_syscall_info_entry,
+            pub exit: __c_anonymous_ptrace_syscall_info_exit,
+            pub seccomp: __c_anonymous_ptrace_syscall_info_seccomp,
+        }
+        impl ::Copy for __c_anonymous_ptrace_syscall_info_data {}
+        impl ::Clone for __c_anonymous_ptrace_syscall_info_data {
+            fn clone(&self) -> __c_anonymous_ptrace_syscall_info_data {
+                *self
+            }
+        }
     }
 }
 
@@ -434,6 +491,44 @@ cfg_if! {
                 self.sigev_notify_thread_id.hash(state);
             }
         }
+
+        #[cfg(libc_union)]
+        impl PartialEq for __c_anonymous_ptrace_syscall_info_data {
+            fn eq(&self, other: &__c_anonymous_ptrace_syscall_info_data) -> bool {
+                unsafe {
+                self.entry == other.entry ||
+                    self.exit == other.exit ||
+                    self.seccomp == other.seccomp
+                }
+            }
+        }
+
+        #[cfg(libc_union)]
+        impl Eq for __c_anonymous_ptrace_syscall_info_data {}
+
+        #[cfg(libc_union)]
+        impl ::fmt::Debug for __c_anonymous_ptrace_syscall_info_data {
+            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
+                unsafe {
+                f.debug_struct("__c_anonymous_ptrace_syscall_info_data")
+                    .field("entry", &self.entry)
+                    .field("exit", &self.exit)
+                    .field("seccomp", &self.seccomp)
+                    .finish()
+                }
+            }
+        }
+
+        #[cfg(libc_union)]
+        impl ::hash::Hash for __c_anonymous_ptrace_syscall_info_data {
+            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
+                unsafe {
+                self.entry.hash(state);
+                self.exit.hash(state);
+                self.seccomp.hash(state);
+                }
+            }
+        }
     }
 }
 
@@ -557,6 +652,14 @@ pub const XATTR_CREATE: ::c_int = 0x1;
 pub const XATTR_REPLACE: ::c_int = 0x2;
 
 cfg_if! {
+    if #[cfg(target_os = "android")] {
+        pub const RLIM64_INFINITY: ::c_ulonglong = !0;
+    } else {
+        pub const RLIM64_INFINITY: ::rlim64_t = !0;
+    }
+}
+
+cfg_if! {
     if #[cfg(target_env = "ohos")] {
         pub const LC_CTYPE: ::c_int = 0;
         pub const LC_NUMERIC: ::c_int = 1;
@@ -654,7 +757,18 @@ pub const MADV_HUGEPAGE: ::c_int = 14;
 pub const MADV_NOHUGEPAGE: ::c_int = 15;
 pub const MADV_DONTDUMP: ::c_int = 16;
 pub const MADV_DODUMP: ::c_int = 17;
+pub const MADV_WIPEONFORK: ::c_int = 18;
+pub const MADV_KEEPONFORK: ::c_int = 19;
+pub const MADV_COLD: ::c_int = 20;
+pub const MADV_PAGEOUT: ::c_int = 21;
 pub const MADV_HWPOISON: ::c_int = 100;
+cfg_if! {
+    if #[cfg(not(target_os = "emscripten"))] {
+        pub const MADV_POPULATE_READ: ::c_int = 22;
+        pub const MADV_POPULATE_WRITE: ::c_int = 23;
+        pub const MADV_DONTNEED_LOCKED: ::c_int = 24;
+    }
+}
 
 pub const IFF_UP: ::c_int = 0x1;
 pub const IFF_BROADCAST: ::c_int = 0x2;
@@ -897,6 +1011,10 @@ pub const IPPROTO_UDPLITE: ::c_int = 136;
 pub const IPPROTO_RAW: ::c_int = 255;
 pub const IPPROTO_BEETPH: ::c_int = 94;
 pub const IPPROTO_MPLS: ::c_int = 137;
+/// Multipath TCP
+pub const IPPROTO_MPTCP: ::c_int = 262;
+/// Ethernet-within-IPv6 encapsulation.
+pub const IPPROTO_ETHERNET: ::c_int = 143;
 
 pub const MCAST_EXCLUDE: ::c_int = 0;
 pub const MCAST_INCLUDE: ::c_int = 1;
@@ -1175,6 +1293,40 @@ pub const WHOLE_SECONDS: ::c_int = 0x2000000;
 pub const STICKY_TIMEOUTS: ::c_int = 0x4000000;
 pub const ADDR_LIMIT_3GB: ::c_int = 0x8000000;
 
+pub const PTRACE_TRACEME: ::c_uint = 0;
+pub const PTRACE_PEEKTEXT: ::c_uint = 1;
+pub const PTRACE_PEEKDATA: ::c_uint = 2;
+pub const PTRACE_PEEKUSER: ::c_uint = 3;
+pub const PTRACE_POKETEXT: ::c_uint = 4;
+pub const PTRACE_POKEDATA: ::c_uint = 5;
+pub const PTRACE_POKEUSER: ::c_uint = 6;
+pub const PTRACE_CONT: ::c_uint = 7;
+pub const PTRACE_KILL: ::c_uint = 8;
+pub const PTRACE_SINGLESTEP: ::c_uint = 9;
+pub const PTRACE_ATTACH: ::c_uint = 16;
+pub const PTRACE_DETACH: ::c_uint = 17;
+pub const PTRACE_SYSCALL: ::c_uint = 24;
+pub const PTRACE_SETOPTIONS: ::c_uint = 0x4200;
+pub const PTRACE_GETEVENTMSG: ::c_uint = 0x4201;
+pub const PTRACE_GETSIGINFO: ::c_uint = 0x4202;
+pub const PTRACE_SETSIGINFO: ::c_uint = 0x4203;
+pub const PTRACE_GETREGSET: ::c_uint = 0x4204;
+pub const PTRACE_SETREGSET: ::c_uint = 0x4205;
+pub const PTRACE_SEIZE: ::c_uint = 0x4206;
+pub const PTRACE_INTERRUPT: ::c_uint = 0x4207;
+pub const PTRACE_LISTEN: ::c_uint = 0x4208;
+pub const PTRACE_PEEKSIGINFO: ::c_uint = 0x4209;
+pub const PTRACE_GETSIGMASK: ::c_uint = 0x420a;
+pub const PTRACE_SETSIGMASK: ::c_uint = 0x420b;
+pub const PTRACE_SECCOMP_GET_FILTER: ::c_int = 0x420c;
+pub const PTRACE_SECCOMP_GET_METADATA: ::c_int = 0x420d;
+pub const PTRACE_GET_SYSCALL_INFO: ::c_uint = 0x420e;
+pub const PTRACE_GET_RSEQ_CONFIGURATION: ::c_uint = 0x420f;
+pub const PTRACE_SYSCALL_INFO_NONE: ::__u8 = 0;
+pub const PTRACE_SYSCALL_INFO_ENTRY: ::__u8 = 1;
+pub const PTRACE_SYSCALL_INFO_EXIT: ::__u8 = 2;
+pub const PTRACE_SYSCALL_INFO_SECCOMP: ::__u8 = 3;
+
 // Options set using PTRACE_SETOPTIONS.
 pub const PTRACE_O_TRACESYSGOOD: ::c_int = 0x00000001;
 pub const PTRACE_O_TRACEFORK: ::c_int = 0x00000002;
@@ -1197,6 +1349,7 @@ pub const PTRACE_EVENT_EXEC: ::c_int = 4;
 pub const PTRACE_EVENT_VFORK_DONE: ::c_int = 5;
 pub const PTRACE_EVENT_EXIT: ::c_int = 6;
 pub const PTRACE_EVENT_SECCOMP: ::c_int = 7;
+pub const PTRACE_EVENT_STOP: ::c_int = 128;
 
 pub const __WNOTHREAD: ::c_int = 0x20000000;
 pub const __WALL: ::c_int = 0x40000000;
@@ -1537,7 +1690,7 @@ f! {
             as ::c_uint
     }
 
-    pub fn CMSG_LEN(length: ::c_uint) -> ::c_uint {
+    pub {const} fn CMSG_LEN(length: ::c_uint) -> ::c_uint {
         CMSG_ALIGN(::mem::size_of::<cmsghdr>()) as ::c_uint + length
     }
 
@@ -1674,20 +1827,9 @@ extern "C" {
     pub fn setgroups(ngroups: ::size_t, ptr: *const ::gid_t) -> ::c_int;
     pub fn pipe2(fds: *mut ::c_int, flags: ::c_int) -> ::c_int;
     pub fn statfs(path: *const ::c_char, buf: *mut statfs) -> ::c_int;
-    pub fn statfs64(path: *const ::c_char, buf: *mut statfs64) -> ::c_int;
     pub fn fstatfs(fd: ::c_int, buf: *mut statfs) -> ::c_int;
-    pub fn fstatfs64(fd: ::c_int, buf: *mut statfs64) -> ::c_int;
-    pub fn statvfs64(path: *const ::c_char, buf: *mut statvfs64) -> ::c_int;
-    pub fn fstatvfs64(fd: ::c_int, buf: *mut statvfs64) -> ::c_int;
     pub fn memrchr(cx: *const ::c_void, c: ::c_int, n: ::size_t) -> *mut ::c_void;
-
     pub fn posix_fadvise(fd: ::c_int, offset: ::off_t, len: ::off_t, advise: ::c_int) -> ::c_int;
-    pub fn posix_fadvise64(
-        fd: ::c_int,
-        offset: ::off64_t,
-        len: ::off64_t,
-        advise: ::c_int,
-    ) -> ::c_int;
     pub fn futimens(fd: ::c_int, times: *const ::timespec) -> ::c_int;
     pub fn utimensat(
         dirfd: ::c_int,
@@ -1699,43 +1841,6 @@ extern "C" {
     pub fn freelocale(loc: ::locale_t);
     pub fn newlocale(mask: ::c_int, locale: *const ::c_char, base: ::locale_t) -> ::locale_t;
     pub fn uselocale(loc: ::locale_t) -> ::locale_t;
-    pub fn creat64(path: *const c_char, mode: mode_t) -> ::c_int;
-    pub fn fstat64(fildes: ::c_int, buf: *mut stat64) -> ::c_int;
-    pub fn fstatat64(
-        dirfd: ::c_int,
-        pathname: *const c_char,
-        buf: *mut stat64,
-        flags: ::c_int,
-    ) -> ::c_int;
-    pub fn ftruncate64(fd: ::c_int, length: off64_t) -> ::c_int;
-    pub fn lseek64(fd: ::c_int, offset: off64_t, whence: ::c_int) -> off64_t;
-    pub fn lstat64(path: *const c_char, buf: *mut stat64) -> ::c_int;
-    pub fn mmap64(
-        addr: *mut ::c_void,
-        len: ::size_t,
-        prot: ::c_int,
-        flags: ::c_int,
-        fd: ::c_int,
-        offset: off64_t,
-    ) -> *mut ::c_void;
-    pub fn open64(path: *const c_char, oflag: ::c_int, ...) -> ::c_int;
-    pub fn openat64(fd: ::c_int, path: *const c_char, oflag: ::c_int, ...) -> ::c_int;
-    pub fn pread64(fd: ::c_int, buf: *mut ::c_void, count: ::size_t, offset: off64_t) -> ::ssize_t;
-    pub fn pwrite64(
-        fd: ::c_int,
-        buf: *const ::c_void,
-        count: ::size_t,
-        offset: off64_t,
-    ) -> ::ssize_t;
-    pub fn readdir64(dirp: *mut ::DIR) -> *mut ::dirent64;
-    pub fn readdir64_r(
-        dirp: *mut ::DIR,
-        entry: *mut ::dirent64,
-        result: *mut *mut ::dirent64,
-    ) -> ::c_int;
-    pub fn stat64(path: *const c_char, buf: *mut stat64) -> ::c_int;
-    pub fn truncate64(path: *const c_char, length: off64_t) -> ::c_int;
-
     pub fn mknodat(
         dirfd: ::c_int,
         pathname: *const ::c_char,
@@ -1807,8 +1912,70 @@ extern "C" {
     pub fn strchrnul(s: *const ::c_char, c: ::c_int) -> *mut ::c_char;
 }
 
+// LFS64 extensions
+//
+// * musl and Emscripten has 64-bit versions only so aliases the LFS64 symbols to the standard ones
+// * ulibc doesn't have preadv64/pwritev64
 cfg_if! {
-    if #[cfg(not(target_env = "uclibc"))] {
+    if #[cfg(not(any(target_env = "musl", target_os = "emscripten")))] {
+        extern "C" {
+            pub fn fstatfs64(fd: ::c_int, buf: *mut statfs64) -> ::c_int;
+            pub fn statvfs64(path: *const ::c_char, buf: *mut statvfs64) -> ::c_int;
+            pub fn fstatvfs64(fd: ::c_int, buf: *mut statvfs64) -> ::c_int;
+            pub fn statfs64(path: *const ::c_char, buf: *mut statfs64) -> ::c_int;
+            pub fn creat64(path: *const c_char, mode: mode_t) -> ::c_int;
+            pub fn fstat64(fildes: ::c_int, buf: *mut stat64) -> ::c_int;
+            pub fn fstatat64(
+                dirfd: ::c_int,
+                pathname: *const c_char,
+                buf: *mut stat64,
+                flags: ::c_int,
+            ) -> ::c_int;
+            pub fn ftruncate64(fd: ::c_int, length: off64_t) -> ::c_int;
+            pub fn lseek64(fd: ::c_int, offset: off64_t, whence: ::c_int) -> off64_t;
+            pub fn lstat64(path: *const c_char, buf: *mut stat64) -> ::c_int;
+            pub fn mmap64(
+                addr: *mut ::c_void,
+                len: ::size_t,
+                prot: ::c_int,
+                flags: ::c_int,
+                fd: ::c_int,
+                offset: off64_t,
+            ) -> *mut ::c_void;
+            pub fn open64(path: *const c_char, oflag: ::c_int, ...) -> ::c_int;
+            pub fn openat64(fd: ::c_int, path: *const c_char, oflag: ::c_int, ...) -> ::c_int;
+            pub fn posix_fadvise64(
+                fd: ::c_int,
+                offset: ::off64_t,
+                len: ::off64_t,
+                advise: ::c_int,
+            ) -> ::c_int;
+            pub fn pread64(
+                fd: ::c_int,
+                buf: *mut ::c_void,
+                count: ::size_t,
+                offset: off64_t
+            ) -> ::ssize_t;
+            pub fn pwrite64(
+                fd: ::c_int,
+                buf: *const ::c_void,
+                count: ::size_t,
+                offset: off64_t,
+            ) -> ::ssize_t;
+            pub fn readdir64(dirp: *mut ::DIR) -> *mut ::dirent64;
+            pub fn readdir64_r(
+                dirp: *mut ::DIR,
+                entry: *mut ::dirent64,
+                result: *mut *mut ::dirent64,
+            ) -> ::c_int;
+            pub fn stat64(path: *const c_char, buf: *mut stat64) -> ::c_int;
+            pub fn truncate64(path: *const c_char, length: off64_t) -> ::c_int;
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(not(any(target_env = "uclibc", target_env = "musl", target_os = "emscripten")))] {
         extern "C" {
             pub fn preadv64(
                 fd: ::c_int,
@@ -1822,6 +1989,13 @@ cfg_if! {
                 iovcnt: ::c_int,
                 offset: ::off64_t,
             ) -> ::ssize_t;
+        }
+    }
+}
+
+cfg_if! {
+    if #[cfg(not(target_env = "uclibc"))] {
+        extern "C" {
             // uclibc has separate non-const version of this function
             pub fn forkpty(
                 amaster: *mut ::c_int,

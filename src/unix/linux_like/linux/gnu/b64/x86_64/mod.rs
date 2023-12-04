@@ -265,14 +265,6 @@ s! {
         pub seccomp_notif_resp: ::__u16,
         pub seccomp_data: ::__u16,
     }
-
-    pub struct ptrace_rseq_configuration {
-        pub rseq_abi_pointer: ::__u64,
-        pub rseq_abi_size: ::__u32,
-        pub signature: ::__u32,
-        pub flags: ::__u32,
-        pub pad: ::__u32,
-    }
 }
 
 s_no_extra_traits! {
@@ -542,9 +534,6 @@ pub const POLLWRBAND: ::c_short = 0x200;
 pub const O_ASYNC: ::c_int = 0x2000;
 pub const O_NDELAY: ::c_int = 0x800;
 
-pub const PTRACE_DETACH: ::c_uint = 17;
-pub const PTRACE_GET_RSEQ_CONFIGURATION: ::c_uint = 0x420f;
-
 pub const EFD_NONBLOCK: ::c_int = 0x800;
 
 pub const F_GETLK: ::c_int = 5;
@@ -651,6 +640,7 @@ pub const PR_SPEC_INDIRECT_BRANCH: ::c_int = 1;
 
 pub const MCL_CURRENT: ::c_int = 0x0001;
 pub const MCL_FUTURE: ::c_int = 0x0002;
+pub const MCL_ONFAULT: ::c_int = 0x0004;
 
 pub const SIGSTKSZ: ::size_t = 8192;
 pub const MINSIGSTKSZ: ::size_t = 2048;

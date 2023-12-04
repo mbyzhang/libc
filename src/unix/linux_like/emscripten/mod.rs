@@ -5,10 +5,6 @@ pub type dev_t = u32;
 pub type socklen_t = u32;
 pub type pthread_t = c_ulong;
 pub type mode_t = u32;
-pub type ino64_t = u64;
-pub type off64_t = i64;
-pub type blkcnt64_t = i32;
-pub type rlim64_t = u64;
 pub type shmatt_t = ::c_ulong;
 pub type mqd_t = ::c_int;
 pub type msgqnum_t = ::c_ulong;
@@ -29,10 +25,22 @@ pub type blkcnt_t = i32;
 pub type blksize_t = c_long;
 pub type fsblkcnt_t = u32;
 pub type fsfilcnt_t = u32;
-pub type rlim_t = ::c_ulonglong;
+pub type rlim_t = u64;
 pub type c_long = i32;
 pub type c_ulong = u32;
 pub type nlink_t = u32;
+
+pub type ino64_t = ::ino_t;
+pub type off64_t = ::off_t;
+pub type blkcnt64_t = ::blkcnt_t;
+pub type rlim64_t = ::rlim_t;
+
+pub type rlimit64 = ::rlimit;
+pub type flock64 = ::flock;
+pub type stat64 = ::stat;
+pub type statfs64 = ::statfs;
+pub type statvfs64 = ::statvfs;
+pub type dirent64 = ::dirent;
 
 #[cfg_attr(feature = "extra_traits", derive(Debug))]
 pub enum fpos64_t {} // FIXME: fill this out with a struct
@@ -44,11 +52,6 @@ impl ::Clone for fpos64_t {
 }
 
 s! {
-    pub struct rlimit64 {
-        pub rlim_cur: rlim64_t,
-        pub rlim_max: rlim64_t,
-    }
-
     pub struct glob_t {
         pub gl_pathc: ::size_t,
         pub gl_pathv: *mut *mut c_char,
@@ -223,14 +226,6 @@ s! {
         pub l_pid: ::pid_t,
     }
 
-    pub struct flock64 {
-        pub l_type: ::c_short,
-        pub l_whence: ::c_short,
-        pub l_start: ::off64_t,
-        pub l_len: ::off64_t,
-        pub l_pid: ::pid_t,
-    }
-
     pub struct pthread_attr_t {
         __size: [u32; 11]
     }
@@ -260,35 +255,16 @@ s! {
     }
     pub struct stat {
         pub st_dev: ::dev_t,
+        #[cfg(not(emscripten_new_stat_abi))]
         __st_dev_padding: ::c_int,
+        #[cfg(not(emscripten_new_stat_abi))]
         __st_ino_truncated: ::c_long,
         pub st_mode: ::mode_t,
         pub st_nlink: ::nlink_t,
         pub st_uid: ::uid_t,
         pub st_gid: ::gid_t,
         pub st_rdev: ::dev_t,
-        __st_rdev_padding: ::c_int,
-        pub st_size: ::off_t,
-        pub st_blksize: ::blksize_t,
-        pub st_blocks: ::blkcnt_t,
-        pub st_atime: ::time_t,
-        pub st_atime_nsec: ::c_long,
-        pub st_mtime: ::time_t,
-        pub st_mtime_nsec: ::c_long,
-        pub st_ctime: ::time_t,
-        pub st_ctime_nsec: ::c_long,
-        pub st_ino: ::ino_t,
-    }
-
-    pub struct stat64 {
-        pub st_dev: ::dev_t,
-        __st_dev_padding: ::c_int,
-        __st_ino_truncated: ::c_long,
-        pub st_mode: ::mode_t,
-        pub st_nlink: ::nlink_t,
-        pub st_uid: ::uid_t,
-        pub st_gid: ::gid_t,
-        pub st_rdev: ::dev_t,
+        #[cfg(not(emscripten_new_stat_abi))]
         __st_rdev_padding: ::c_int,
         pub st_size: ::off_t,
         pub st_blksize: ::blksize_t,
@@ -364,37 +340,6 @@ s! {
         _align: [usize; 0],
     }
 
-    pub struct statfs64 {
-        pub f_type: ::c_ulong,
-        pub f_bsize: ::c_ulong,
-        pub f_blocks: ::fsblkcnt_t,
-        pub f_bfree: ::fsblkcnt_t,
-        pub f_bavail: ::fsblkcnt_t,
-        pub f_files: ::fsfilcnt_t,
-        pub f_ffree: ::fsfilcnt_t,
-        pub f_fsid: ::fsid_t,
-        pub f_namelen: ::c_ulong,
-        pub f_frsize: ::c_ulong,
-        pub f_flags: ::c_ulong,
-        pub f_spare: [::c_ulong; 4],
-    }
-
-    pub struct statvfs64 {
-        pub f_bsize: ::c_ulong,
-        pub f_frsize: ::c_ulong,
-        pub f_blocks: u32,
-        pub f_bfree: u32,
-        pub f_bavail: u32,
-        pub f_files: u32,
-        pub f_ffree: u32,
-        pub f_favail: u32,
-        pub f_fsid: ::c_ulong,
-        __f_unused: ::c_int,
-        pub f_flag: ::c_ulong,
-        pub f_namemax: ::c_ulong,
-        __f_spare: [::c_int; 6],
-    }
-
     pub struct arpd_request {
         pub req: ::c_ushort,
         pub ip: u32,
@@ -409,14 +354,6 @@ s_no_extra_traits! {
     pub struct dirent {
         pub d_ino: ::ino_t,
         pub d_off: ::off_t,
-        pub d_reclen: ::c_ushort,
-        pub d_type: ::c_uchar,
-        pub d_name: [::c_char; 256],
-    }
-
-    pub struct dirent64 {
-        pub d_ino: ::ino64_t,
-        pub d_off: ::off64_t,
         pub d_reclen: ::c_ushort,
         pub d_type: ::c_uchar,
         pub d_name: [::c_char; 256],
@@ -476,41 +413,6 @@ cfg_if! {
             }
         }
         impl ::hash::Hash for dirent {
-            fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
-                self.d_ino.hash(state);
-                self.d_off.hash(state);
-                self.d_reclen.hash(state);
-                self.d_type.hash(state);
-                self.d_name.hash(state);
-            }
-        }
-
-        impl PartialEq for dirent64 {
-            fn eq(&self, other: &dirent64) -> bool {
-                self.d_ino == other.d_ino
-                    && self.d_off == other.d_off
-                    && self.d_reclen == other.d_reclen
-                    && self.d_type == other.d_type
-                    && self
-                    .d_name
-                    .iter()
-                    .zip(other.d_name.iter())
-                    .all(|(a,b)| a == b)
-            }
-        }
-        impl Eq for dirent64 {}
-        impl ::fmt::Debug for dirent64 {
-            fn fmt(&self, f: &mut ::fmt::Formatter) -> ::fmt::Result {
-                f.debug_struct("dirent64")
-                    .field("d_ino", &self.d_ino)
-                    .field("d_off", &self.d_off)
-                    .field("d_reclen", &self.d_reclen)
-                    .field("d_type", &self.d_type)
-                    // FIXME: .field("d_name", &self.d_name)
-                    .finish()
-            }
-        }
-        impl ::hash::Hash for dirent64 {
             fn hash<H: ::hash::Hasher>(&self, state: &mut H) {
                 self.d_ino.hash(state);
                 self.d_off.hash(state);
@@ -1328,7 +1230,10 @@ pub const POSIX_FADV_NOREUSE: ::c_int = 5;
 pub const POSIX_MADV_DONTNEED: ::c_int = 0;
 
 pub const RLIM_INFINITY: ::rlim_t = !0;
+#[deprecated(since = "0.2.64", note = "Not stable across OS versions")]
 pub const RLIMIT_NLIMITS: ::c_int = 15;
+#[allow(deprecated)]
+#[deprecated(since = "0.2.64", note = "Not stable across OS versions")]
 pub const RLIM_NLIMITS: ::c_int = RLIMIT_NLIMITS;
 
 pub const MAP_ANONYMOUS: ::c_int = MAP_ANON;
@@ -1344,37 +1249,6 @@ pub const __SIZEOF_PTHREAD_RWLOCKATTR_T: usize = 8;
 pub const CPU_SETSIZE: ::c_int = 128;
 
 pub const QFMT_VFS_V1: ::c_int = 4;
-
-pub const PTRACE_TRACEME: ::c_int = 0;
-pub const PTRACE_PEEKTEXT: ::c_int = 1;
-pub const PTRACE_PEEKDATA: ::c_int = 2;
-pub const PTRACE_PEEKUSER: ::c_int = 3;
-pub const PTRACE_POKETEXT: ::c_int = 4;
-pub const PTRACE_POKEDATA: ::c_int = 5;
-pub const PTRACE_POKEUSER: ::c_int = 6;
-pub const PTRACE_CONT: ::c_int = 7;
-pub const PTRACE_KILL: ::c_int = 8;
-pub const PTRACE_SINGLESTEP: ::c_int = 9;
-pub const PTRACE_ATTACH: ::c_int = 16;
-pub const PTRACE_DETACH: ::c_int = 17;
-pub const PTRACE_SYSCALL: ::c_int = 24;
-pub const PTRACE_SETOPTIONS: ::c_int = 0x4200;
-pub const PTRACE_GETEVENTMSG: ::c_int = 0x4201;
-pub const PTRACE_GETSIGINFO: ::c_int = 0x4202;
-pub const PTRACE_SETSIGINFO: ::c_int = 0x4203;
-pub const PTRACE_GETREGSET: ::c_int = 0x4204;
-pub const PTRACE_SETREGSET: ::c_int = 0x4205;
-pub const PTRACE_SEIZE: ::c_int = 0x4206;
-pub const PTRACE_INTERRUPT: ::c_int = 0x4207;
-pub const PTRACE_LISTEN: ::c_int = 0x4208;
-pub const PTRACE_PEEKSIGINFO: ::c_int = 0x4209;
-
-pub const PTRACE_GETFPREGS: ::c_uint = 14;
-pub const PTRACE_SETFPREGS: ::c_uint = 15;
-pub const PTRACE_GETFPXREGS: ::c_uint = 18;
-pub const PTRACE_SETFPXREGS: ::c_uint = 19;
-pub const PTRACE_GETREGS: ::c_uint = 12;
-pub const PTRACE_SETREGS: ::c_uint = 13;
 
 pub const EFD_NONBLOCK: ::c_int = ::O_NONBLOCK;
 
@@ -1757,8 +1631,6 @@ safe_f! {
 }
 
 extern "C" {
-    pub fn getrlimit64(resource: ::c_int, rlim: *mut rlimit64) -> ::c_int;
-    pub fn setrlimit64(resource: ::c_int, rlim: *const rlimit64) -> ::c_int;
     pub fn getrlimit(resource: ::c_int, rlim: *mut ::rlimit) -> ::c_int;
     pub fn setrlimit(resource: ::c_int, rlim: *const ::rlimit) -> ::c_int;
     pub fn strerror_r(errnum: ::c_int, buf: *mut c_char, buflen: ::size_t) -> ::c_int;
@@ -1779,17 +1651,6 @@ extern "C" {
     pub fn mprotect(addr: *mut ::c_void, len: ::size_t, prot: ::c_int) -> ::c_int;
     pub fn __errno_location() -> *mut ::c_int;
 
-    pub fn fopen64(filename: *const c_char, mode: *const c_char) -> *mut ::FILE;
-    pub fn freopen64(
-        filename: *const c_char,
-        mode: *const c_char,
-        file: *mut ::FILE,
-    ) -> *mut ::FILE;
-    pub fn tmpfile64() -> *mut ::FILE;
-    pub fn fgetpos64(stream: *mut ::FILE, ptr: *mut fpos64_t) -> ::c_int;
-    pub fn fsetpos64(stream: *mut ::FILE, ptr: *const fpos64_t) -> ::c_int;
-    pub fn fseeko64(stream: *mut ::FILE, offset: ::off64_t, whence: ::c_int) -> ::c_int;
-    pub fn ftello64(stream: *mut ::FILE) -> ::off64_t;
     pub fn posix_fallocate(fd: ::c_int, offset: ::off_t, len: ::off_t) -> ::c_int;
     pub fn pwritev(fd: ::c_int, iov: *const ::iovec, iovcnt: ::c_int, offset: ::off_t)
         -> ::ssize_t;
@@ -1810,7 +1671,7 @@ extern "C" {
         host: *mut ::c_char,
         hostlen: ::socklen_t,
         serv: *mut ::c_char,
-        sevlen: ::socklen_t,
+        servlen: ::socklen_t,
         flags: ::c_int,
     ) -> ::c_int;
     pub fn getloadavg(loadavg: *mut ::c_double, nelem: ::c_int) -> ::c_int;
@@ -1885,6 +1746,10 @@ extern "C" {
 
     pub fn getentropy(buf: *mut ::c_void, buflen: ::size_t) -> ::c_int;
 }
+
+// Alias <foo> to <foo>64 to mimic glibc's LFS64 support
+mod lfs64;
+pub use self::lfs64::*;
 
 cfg_if! {
     if #[cfg(libc_align)] {
